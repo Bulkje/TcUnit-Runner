@@ -538,7 +538,7 @@ namespace TcUnit.TcUnit_Runner
             xml.PreserveWhitespace = true;
             xml.Load(XMLFilepath);
             string xmlString = File.ReadAllText(XMLFilepath);
-            string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").ToString();
+            string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").Value.ToString();
 
             /* ==============================================
             * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
