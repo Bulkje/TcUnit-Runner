@@ -399,10 +399,11 @@ namespace TcUnit.TcUnit_Runner
                 { }
                 finally
                 {
+                    errorItems = vsInstance.GetErrorItems();
                     tcAdsClient.Disconnect();
                 }
 
-                errorItems = vsInstance.GetErrorItems();
+                
 
                 if (log.IsDebugEnabled)
                 {
@@ -417,6 +418,7 @@ namespace TcUnit.TcUnit_Runner
                 log.Info("... got " + errorItems.Count + " report lines so far.");
                 if (tcUnitResultCollector.AreResultsAvailable(errorItems))
                 {
+                    errorItems = vsInstance.GetErrorItems();
                     log.Info("All results from TcUnit obtained");
                     /* The last test suite result can be returned after that we have received the test results, wait a few seconds
                      * and fetch again
