@@ -537,13 +537,14 @@ namespace TcUnit.TcUnit_Runner
             XmlDocument xml = new XmlDocument();
             xml.PreserveWhitespace = true;
             xml.Load(XMLFilepath);
-            string xmlString = xml.ToString();
+            string xmlString = File.ReadAllText(XMLFilepath);
             string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").ToString();
 
             /* ==============================================
             * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
             * ============================================== */
             ITcSmTreeItem routesNode = manager.LookupTreeItem("TIRR");
+            //log.Info(xmlString);
             routesNode.ConsumeXml(xmlString);
 
             /* ==============================================
