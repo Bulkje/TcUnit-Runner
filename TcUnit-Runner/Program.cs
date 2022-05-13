@@ -38,6 +38,7 @@ using System.Xml;
 using TCatSysManagerLib;
 using TwinCAT.Ads;
 using TwinCAT;
+using System.Text.RegularExpressions;
 
 namespace TcUnit.TcUnit_Runner
 {
@@ -538,7 +539,10 @@ namespace TcUnit.TcUnit_Runner
             xml.PreserveWhitespace = true;
             xml.Load(XMLFilepath);
             string xmlString = File.ReadAllText(XMLFilepath);
-            string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").Value.ToString();
+
+            string AmsNetID = Regex.Match(xmlString, "(?<=RemoteNetId>)([0-9.]*)(?=</)").ToString();
+
+            //string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").Value.ToString().;
 
             /* ==============================================
             * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
