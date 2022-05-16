@@ -504,6 +504,9 @@ namespace TcUnit.TcUnit_Runner
              * The following sample code creates an ADS route to a remote
              * ADS device. The following XML structure will be consumed
              * on the System Manager node SYSTEM\Route Settings:
+             * The exact XML schema is not known, maybe ask beckhoff support?
+             * source : https://infosys.beckhoff.com/english.php?content=../content/1033/tc3_automationinterface/36028797261903755.html&id=
+             * 
              * 
              * <TreeItem>
 	            <ItemName>Route Settings</ItemName>
@@ -512,24 +515,25 @@ namespace TcUnit.TcUnit_Runner
 		            <TargetList>
 			            <BroadcastSearch>false</BroadcastSearch>
 		            </TargetList>
-		            <AddRoute>
-			            <RemoteName>LAPTOP-JESSEX1</RemoteName>
-			            <RemoteNetId>10.21.116.82.1.1</RemoteNetId>
-			            <RemoteIpAddr>10.0.10.234</RemoteIpAddr>
+		            <AddProjectRoute>
+			            <RemoteName>XAR-PC</RemoteName>
+			            <RemoteNetId>10.0.0.0.1.1</RemoteNetId>
+			            <RemoteIpAddr>10.0.10.1</RemoteIpAddr>
 			            <Type>TCP_IP</Type>
 			            <Flags>32</Flags>
 			            <Tls>
 				            <Psk>
-					            <Identity>Jesse</Identity>
-					            <Pwd>lmaolmao</Pwd>
+					            <Identity>ID</Identity>
+					            <Pwd>password</Pwd>
 				            </Psk>
 			            </Tls>
-		            </AddRoute>
+                        <LocalName>LocalName</LocalName>
+		            </AddProjectRoute>
 	            </RoutePrj>
                </TreeItem>
              * 
              * This will create a new ADS route to the remote target
-             * with NetID 10.21.116.82.1.1 and IP 10.0.10.234. By
+             * with NetID 10.0.0.0.1.1 and IP 10.0.10.1. By
              * specifying the identity / pwd combination of the remote
              * target, the corresponding return route will be created
              * on the remote device.
@@ -540,15 +544,13 @@ namespace TcUnit.TcUnit_Runner
             xml.Load(XMLFilepath);
             string xmlString = File.ReadAllText(XMLFilepath);
 
+            //obtain AMSNetID from supplied route
             string AmsNetID = Regex.Match(xmlString, "(?<=RemoteNetId>)([0-9.]*)(?=</)").ToString();
-
-            //string AmsNetID = xml.DocumentElement.SelectSingleNode("/TreeItem/RoutePrj/AddRoute/RemoteNetId").Value.ToString().;
 
             /* ==============================================
             * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
             * ============================================== */
             ITcSmTreeItem routesNode = manager.LookupTreeItem("TIRR");
-            //log.Info(xmlString);
             routesNode.ConsumeXml(xmlString);
 
             /* ==============================================
