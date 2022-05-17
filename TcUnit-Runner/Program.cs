@@ -37,6 +37,7 @@ using System.Reflection;
 using System.Xml;
 using TCatSysManagerLib;
 using TwinCAT.Ads;
+using TwinCAT.Ads.TcpRouter;
 using TwinCAT;
 using System.Text.RegularExpressions;
 
@@ -47,6 +48,7 @@ namespace TcUnit.TcUnit_Runner
         private static string VisualStudioSolutionFilePath = null;
         private static string TwinCATProjectFilePath = null;
         private static string RouteXMLFilePath = null;
+        private static string HostXMLFilePath = null;
         private static string TcUnitTaskName = null;
         private static string ForceToThisTwinCATVersion = null;
         private static string AmsNetId = null;
@@ -72,6 +74,7 @@ namespace TcUnit.TcUnit_Runner
             OptionSet options = new OptionSet()
                 .Add("v=|VisualStudioSolutionFilePath=", "The full path to the TwinCAT project (sln-file)", v => VisualStudioSolutionFilePath = v)
                 .Add("x=|RouteXMLFilePath=", "[OPTIONAL] The full path to the .xml file that contains the route to the target", x => RouteXMLFilePath = x)
+                .Add("c=|HostXMLFilePath=", "[OPTIONAL] The full path to the .xml file that contains the route information from the host", c => HostXMLFilePath = c)
                 .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
                 .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
@@ -281,13 +284,13 @@ namespace TcUnit.TcUnit_Runner
             
             /* Check whether the user has provided a new AMS route. If so, use it. Otherwise
             * use the local AMS NetID */
-            if (String.IsNullOrEmpty(RouteXMLFilePath))
+            if (String.IsNullOrEmpty(RouteXMLFilePath) || (String.IsNullOrEmpty(HostXMLFilePath)))
             {
                 AmsNetId = Constants.LOCAL_AMS_NET_ID;
             }
             else
             {
-                AmsNetId = ParseXMLRoute(RouteXMLFilePath, automationInterface.ITcSysManager);
+                AmsNetId = ParseXMLRoute(RouteXMLFilePath, HostXMLFilePath, automationInterface.ITcSysManager);
             }
             /* Check whether the user has provided an AMS NetId. If so, use it. Otherwise use
              * the local AMS NetId 
@@ -497,7 +500,7 @@ namespace TcUnit.TcUnit_Runner
         }
 
 
-        static string ParseXMLRoute(string XMLFilepath, ITcSysManager manager)
+        static string ParseXMLRoute(string XMLstaticFilepath, string XMLtargetPath, ITcSysManager manager)
         {
 
             /* =====================================================
@@ -505,7 +508,7 @@ namespace TcUnit.TcUnit_Runner
              * ADS device. The following XML structure will be consumed
              * on the System Manager node SYSTEM\Route Settings:
              * The exact XML schema is not known, maybe ask beckhoff support?
-             * source : https://infosys.beckhoff.com/english.php?content=../content/1033/tc3_automationinterface/36028797261903755.html&id=
+             * source : 
              * 
              * 
              * <TreeItem>
@@ -541,22 +544,30 @@ namespace TcUnit.TcUnit_Runner
 
             XmlDocument xml = new XmlDocument();
             xml.PreserveWhitespace = true;
-            xml.Load(XMLFilepath);
-            string xmlString = File.ReadAllText(XMLFilepath);
+            xml.Load(XMLstaticFilepath);
+            string xmlString = File.ReadAllText(XMLstaticFilepath);
 
             //obtain AMSNetID from supplied route
-            string AmsNetID = Regex.Match(xmlString, "(?<=RemoteNetId>)([0-9.]*)(?=</)").ToString();
+            AmsNetId targetAmsNetID = new AmsNetId(Regex.Match(xmlString, "(?<=NetId>)([0-9.]*)(?=</)").ToString());
+            string targetIP = Regex.Match(xmlString, "(?<=Address>)([0-9.]*)(?=</)").ToString();
+            string routeName = Regex.Match(xmlString, "(?<=Name>)(.*)(?=</)").ToString();
+            Route Testroute = new Route(routeName, targetAmsNetID, targetIP);
+
 
             /* ==============================================
             * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
             * ============================================== */
             ITcSmTreeItem routesNode = manager.LookupTreeItem("TIRR");
-            routesNode.ConsumeXml(xmlString);
+
+            //string Xmlschema = routesNode.ProduceXml();
+            //Console.WriteLine(Xmlschema);
+            routesNode.ConsumeXml(File.ReadAllText(XMLtargetPath));
+            //manager.SaveConfiguration();
 
             /* ==============================================
             /* Save configuration
             /* ============================================== */
-            return AmsNetID;
+            return targetAmsNetID.ToString();
         }
 
         /// <summary>
