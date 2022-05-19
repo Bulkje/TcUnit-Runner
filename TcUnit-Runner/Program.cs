@@ -500,7 +500,7 @@ namespace TcUnit.TcUnit_Runner
         }
 
 
-        static string ParseXMLRoute(string XMLstaticFilepath, string XMLtargetPath, ITcSysManager manager)
+        static string ParseXMLRoute(string XMLstaticFilepath, string XMLtargetPath, ITcSysManager10 manager)
         {
 
             /* =====================================================
@@ -541,7 +541,10 @@ namespace TcUnit.TcUnit_Runner
              * target, the corresponding return route will be created
              * on the remote device.
              * ===================================================== */
-
+            /* ==============================================
+            * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
+            * ============================================== */
+            
             XmlDocument xml = new XmlDocument();
             xml.PreserveWhitespace = true;
             xml.Load(XMLstaticFilepath);
@@ -549,19 +552,24 @@ namespace TcUnit.TcUnit_Runner
 
             //obtain AMSNetID from supplied route
             AmsNetId targetAmsNetID = new AmsNetId(Regex.Match(xmlString, "(?<=NetId>)([0-9.]*)(?=</)").ToString());
+            
+            AdsClient smallAdsClient = new AdsClient();
+            smallAdsClient.Connect(Regex.Match(File.ReadAllText(XMLtargetPath), "(?<=NetId>)([0-9.]*)(?=</)").ToString(), 10000);
+            smallAdsClient.TryWriteControl(new StateInfo(AdsState.Reconfig, 2));
+            //make sure system is done with reconfig when continuing program
+            System.Threading.Thread.Sleep(5000);
+            smallAdsClient.Disconnect();
+
             string targetIP = Regex.Match(xmlString, "(?<=Address>)([0-9.]*)(?=</)").ToString();
             string routeName = Regex.Match(xmlString, "(?<=Name>)(.*)(?=</)").ToString();
             Route Testroute = new Route(routeName, targetAmsNetID, targetIP);
 
-
-            /* ==============================================
-            * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
-            * ============================================== */
             ITcSmTreeItem routesNode = manager.LookupTreeItem("TIRR");
+            routesNode.ConsumeXml(File.ReadAllText(XMLtargetPath));
 
             //string Xmlschema = routesNode.ProduceXml();
             //Console.WriteLine(Xmlschema);
-            routesNode.ConsumeXml(File.ReadAllText(XMLtargetPath));
+
             //manager.SaveConfiguration();
 
             /* ==============================================
