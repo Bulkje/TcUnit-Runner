@@ -34,7 +34,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Xml;
+using System.Xml;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 using TCatSysManagerLib;
 using TwinCAT.Ads;
 using TwinCAT;
@@ -69,10 +69,7 @@ namespace TcUnit.TcUnit_Runner
 
             OptionSet options = new OptionSet()
                 .Add("v=|VisualStudioSolutionFilePath=", "The full path to the TwinCAT project (sln-file)", v => VisualStudioSolutionFilePath = v)
-                .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
-                .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
-                .Add("u=|Timeout=", "[OPTIONAL] Timeout the process with an error after X minutes", u => Timeout = u)
                 .Add("d|debug", "[OPTIONAL] Increase debug message verbosity", d => enableDebugLoggingLevel = d != null)
                 .Add("?|h|help", h => showHelp = h != null);
             try
@@ -134,16 +131,6 @@ namespace TcUnit.TcUnit_Runner
 
             LogBasicInfo();
 
-            /* Start a timeout for the process(es) if the user asked for it
-             */
-            if (Timeout != null)
-            {
-                log.Info("Timeout enabled - process(es) timesout after " + Timeout + " minute(s)");
-                System.Timers.Timer timeout = new System.Timers.Timer(Int32.Parse(Timeout) * 1000 * 60);
-                timeout.Elapsed += KillProcess;
-                timeout.AutoReset = false;
-                timeout.Start();
-            }
 
             MessageFilter.Register();
 
@@ -177,7 +164,6 @@ namespace TcUnit.TcUnit_Runner
             }
             catch
             {
-
                 log.Error("Error loading VS DTE. Is the correct version of Visual Studio and TwinCAT installed? Is the TcUnit-Runner running with administrator privileges?");
                 CleanUpAndExitApplication(Constants.RETURN_ERROR_LOADING_VISUAL_STUDIO_DTE);
             }
@@ -205,77 +191,6 @@ namespace TcUnit.TcUnit_Runner
                 log.Error("No PLC-project exists in TwinCAT project");
                 CleanUpAndExitApplication(Constants.RETURN_NO_PLC_PROJECT_IN_TWINCAT_PROJECT);
             }
-
-
-            ITcSmTreeItem realTimeTasksTreeItem = automationInterface.RealTimeTasksTreeItem;
-            /* Task name provided */
-            if (!String.IsNullOrEmpty(TcUnitTaskName))
-            {
-                log.Info("Setting task '" + TcUnitTaskName + "' enable and autostart, and all other tasks (if existing) to disable and non-autostart");
-                bool foundTcUnitTaskName = false;
-
-                /* Find all tasks, and check whether the user provided TcUnit task is amongst them.
-                 * Also update the task object (Update <Disabled> and <Autostart>-tag)
-                 */
-                foreach (ITcSmTreeItem child in realTimeTasksTreeItem)
-                {
-                    ITcSmTreeItem testTreeItem = realTimeTasksTreeItem.LookupChild(child.Name);
-                    string xmlString = testTreeItem.ProduceXml();
-                    string newXmlString = "";
-                    try
-                    {
-                        if (TcUnitTaskName.Equals(XmlUtilities.GetItemNameFromRealTimeTaskXML(xmlString)))
-                        {
-                            foundTcUnitTaskName = true;
-                            newXmlString = XmlUtilities.SetDisabledAndAndAutoStartOfRealTimeTaskXml(xmlString, false, true);
-                        }
-                        else
-                        {
-                            newXmlString = XmlUtilities.SetDisabledAndAndAutoStartOfRealTimeTaskXml(xmlString, true, false);
-                        }
-                        testTreeItem.ConsumeXml(newXmlString);
-                        System.Threading.Thread.Sleep(3000);
-                    }
-                    catch
-                    {
-                        log.Error("Could not parse real time task XML data");
-                        CleanUpAndExitApplication(Constants.RETURN_NOT_POSSIBLE_TO_PARSE_REAL_TIME_TASK_XML_DATA);
-                    }
-                }
-
-                if (!foundTcUnitTaskName)
-                {
-                    log.Error("Could not find task '" + TcUnitTaskName + "' in TwinCAT project");
-                    CleanUpAndExitApplication(Constants.RETURN_FAILED_FINDING_DEFINED_UNIT_TEST_TASK_IN_TWINCAT_PROJECT);
-                }
-            }
-
-            /* No task name provided */
-            else
-            {
-                log.Info("No task name provided. Assuming only one task exists");
-                /* Check that only one task exists */
-                if (realTimeTasksTreeItem.ChildCount.Equals(1))
-                {
-                    // Get task name
-                    ITcSmTreeItem child = realTimeTasksTreeItem.get_Child(1);
-                    ITcSmTreeItem testTreeItem = realTimeTasksTreeItem.LookupChild(child.Name);
-                    string xmlString = testTreeItem.ProduceXml();
-                    TcUnitTaskName = XmlUtilities.GetItemNameFromRealTimeTaskXML(xmlString);
-                    log.Info("Found task with name '" + TcUnitTaskName + "'");
-                    string newXmlString = "";
-                    newXmlString = XmlUtilities.SetDisabledAndAndAutoStartOfRealTimeTaskXml(xmlString, false, true);
-                    testTreeItem.ConsumeXml(newXmlString);
-                    System.Threading.Thread.Sleep(3000);
-                }
-                /* Less ore more than one task, which is an error */
-                else
-                {
-                    log.Error("The number of tasks is not equal to 1 (one). Found " + realTimeTasksTreeItem.ChildCount.ToString() + " number of tasks. Please provide which task is the TcUnit task");
-                    CleanUpAndExitApplication(Constants.RETURN_TASK_COUNT_NOT_EQUAL_TO_ONE);
-                }
-            }
-
 
             /* Build the solution and collect any eventual errors. Make sure to
              * filter out everything that is an error
@@ -310,45 +225,7 @@ namespace TcUnit.TcUnit_Runner
              * start/restart TwinCAT */
             if (tcBuildError.Equals(0))
             {
-                /* Check whether the user has provided an AMS NetId. If so, use it. Otherwise use
-                 * the local AMS NetId */
-                if (String.IsNullOrEmpty(AmsNetId))
-                    AmsNetId = Constants.LOCAL_AMS_NET_ID;
-
-                log.Info("Setting target NetId to '" + AmsNetId + "'");
-                automationInterface.ITcSysManager.SetTargetNetId(AmsNetId);
-                log.Info("Enabling boot project and setting BootProjectAutostart on " + automationInterface.ITcSysManager.GetTargetNetId());
-
-                for (int i = 1; i <= automationInterface.PlcTreeItem.ChildCount; i++)
-                {
-                    ITcSmTreeItem plcProject = automationInterface.PlcTreeItem.Child[i];
-                    ITcPlcProject iecProject = (ITcPlcProject)plcProject;
-                    iecProject.BootProjectAutostart = true;
-
-                    /* add the port that is used for this PLC to the AmsPorts list that
-                     * is later used to monitory the AdsState
-                     */
-                    string xmlString = plcProject.ProduceXml();
-                    AmsPorts.Add(XmlUtilities.AmsPort(xmlString));
-                }
-                System.Threading.Thread.Sleep(1000);
-                log.Info("ActivateConfiguration");
-                //log.Info(automationInterface.ActivateConfiguration());
-                automationInterface.ActivateConfiguration();
-                //automationInterface.ITcSysManager.ActivateConfiguration();
-                log.Info("Done activating");
-
-                // Wait
-                System.Threading.Thread.Sleep(10000);
-
-                /* Clean the solution. This is the only way to clean the error list which needs to be
-                 * clean prior to starting the TwinCAT runtime */
-                vsInstance.CleanSolution();
-
-                // Wait
-                System.Threading.Thread.Sleep(10000);
-                log.Info("StartRestartTwinCAT");
-                automationInterface.StartRestartTwinCAT();
+                log.Info("No Build errors!");
             }
             else
             {
@@ -356,110 +233,7 @@ namespace TcUnit.TcUnit_Runner
                 CleanUpAndExitApplication(Constants.RETURN_BUILD_ERROR);
             }
 
-            /* Establish a connection to the ADS router
-             */
-            AdsClient tcAdsClient = new AdsClient();
-
-            /* Run TcUnit until the results have been returned */
-            TcUnitResultCollector tcUnitResultCollector = new TcUnitResultCollector();
-            ErrorList errorList = new ErrorList();
-
-            log.Info("Waiting for results from TcUnit...");
-
-            ErrorItems errorItems;
-
-            while (true)
-            {
-                System.Threading.Thread.Sleep(10000);
-
-                /* Monitor the AdsState for each PLC that is used in the
-                 * solution. If we can't connect to the Ads Router, we just
-                 * carry on.
-                 */
-                try
-                {
-                    foreach (int amsPort in AmsPorts)
-                    {
-                        tcAdsClient.Connect(AmsNetId, amsPort);
-                        AdsState adsState = tcAdsClient.ReadState().AdsState;
-                        if (adsState != AdsState.Run)
-                        {
-                            log.Error("Invalid AdsState " + adsState + "<>" + AdsState.Run + ". This could indicate a PLC Exception, terminating ...");
-                            Environment.Exit(Constants.RETURN_INVALID_ADSSTATE);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                { }
-                finally
-                {
-                    errorItems = vsInstance.GetErrorItems();
-                    tcAdsClient.Disconnect();
-                }
-
-                
-
-                if (log.IsDebugEnabled)
-                {
-                    var newErrors = errorList.AddNew(errorItems);
-
-                    foreach (var error in newErrors)
-                    {
-                        log.Debug(error.ErrorLevel + ": " + error.Description);
-                    }
-                }
-
-                log.Info("... got " + errorItems.Count + " report lines so far.");
-                if (tcUnitResultCollector.AreResultsAvailable(errorItems))
-                {
-                    errorItems = vsInstance.GetErrorItems();
-                    log.Info("All results from TcUnit obtained");
-                    /* The last test suite result can be returned after that we have received the test results, wait a few seconds
-                     * and fetch again
-                    */
-                    System.Threading.Thread.Sleep(10000);
-                    errorList.AddNew(errorItems);
-                    break;
-                }
-
-            }
-
-            List<ErrorList.Error> errors = new List<ErrorList.Error>(errorList.Where(e => (e.ErrorLevel == vsBuildErrorLevel.vsBuildErrorLevelHigh || e.ErrorLevel == vsBuildErrorLevel.vsBuildErrorLevelLow)));
-            List<ErrorList.Error> errorsSorted = errors.OrderBy(o => o.Description).ToList();
-            for (int i = 1; i <= automationInterface.PlcTreeItem.ChildCount; i++)
-            {
-                ITcSmTreeItem plcProj = automationInterface.PlcTreeItem.Child[i];
-                ITcPlcProject iecProj = (ITcPlcProject)plcProj;
-                iecProj.BootProjectAutostart = false;
-            }
-            tcAdsClient.Connect(AmsNetId, AmsPorts[0]);
-            automationInterface.StartRestartTwinCAT();
-            tcAdsClient.Disconnect();
-
-            /* Parse all events (from the error list) from Visual Studio and store the results */
-            TcUnitTestResult testResult = tcUnitResultCollector.ParseResults(errorsSorted, TcUnitTaskName);
-
-            /* Print results to logger */
-            log.Info(testResult.PrintTestResults());
-
-            /* Write xUnit XML report */
-            if (testResult == null)
-            {
-                log.Error("No test results parsed from events (error list).");
-                CleanUpAndExitApplication(Constants.RETURN_ERROR_NO_TEST_RESULTS);
-            }
-
-            // No need to check if file (VisualStudioSolutionFilePath) exists, as this has already been done
-            string VisualStudioSolutionDirectoryPath = Path.GetDirectoryName(VisualStudioSolutionFilePath);
-            string XUnitReportFilePath = VisualStudioSolutionDirectoryPath + "\\" + Constants.XUNIT_RESULT_FILE_NAME;
-            log.Info("Writing xUnit XML file to " + XUnitReportFilePath);
-            // Overwrites all existing content (if existing)
-            XunitXmlCreator.WriteXml(testResult, XUnitReportFilePath);
-
-            if (testResult.GetAllTestsPassed())
-                CleanUpAndExitApplication(Constants.RETURN_SUCCESSFULL);
-            else
-                CleanUpAndExitApplication(Constants.RETURN_TESTS_FAILED);
+            
         }
 
         static void DisplayHelp(OptionSet p)
