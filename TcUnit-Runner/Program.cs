@@ -37,9 +37,7 @@ using System.Reflection;
 using System.Xml;
 using TCatSysManagerLib;
 using TwinCAT.Ads;
-using TwinCAT.Ads.TcpRouter;
 using TwinCAT;
-using System.Text.RegularExpressions;
 
 namespace TcUnit.TcUnit_Runner
 {
@@ -47,8 +45,6 @@ namespace TcUnit.TcUnit_Runner
     {
         private static string VisualStudioSolutionFilePath = null;
         private static string TwinCATProjectFilePath = null;
-        private static string RouteXMLFilePath = null;
-        private static string HostXMLFilePath = null;
         private static string TcUnitTaskName = null;
         private static string ForceToThisTwinCATVersion = null;
         private static string AmsNetId = null;
@@ -73,8 +69,6 @@ namespace TcUnit.TcUnit_Runner
 
             OptionSet options = new OptionSet()
                 .Add("v=|VisualStudioSolutionFilePath=", "The full path to the TwinCAT project (sln-file)", v => VisualStudioSolutionFilePath = v)
-                .Add("x=|RouteXMLFilePath=", "[OPTIONAL] The full path to the .xml file that contains the route to the target", x => RouteXMLFilePath = x)
-                .Add("c=|HostXMLFilePath=", "[OPTIONAL] The full path to the .xml file that contains the route information from the host", c => HostXMLFilePath = c)
                 .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
                 .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
@@ -281,37 +275,14 @@ namespace TcUnit.TcUnit_Runner
                     CleanUpAndExitApplication(Constants.RETURN_TASK_COUNT_NOT_EQUAL_TO_ONE);
                 }
             }
-            
-            /* Check whether the user has provided a new AMS route. If so, use it. Otherwise
-            * use the local AMS NetID */
-            if (String.IsNullOrEmpty(RouteXMLFilePath) || (String.IsNullOrEmpty(HostXMLFilePath)))
-            {
-                AmsNetId = Constants.LOCAL_AMS_NET_ID;
-            }
-            else
-            {
-                AmsNetId = ParseXMLRoute(RouteXMLFilePath, HostXMLFilePath, automationInterface.ITcSysManager);
-            }
-            /* Check whether the user has provided an AMS NetId. If so, use it. Otherwise use
-             * the local AMS NetId 
-            if (String.IsNullOrEmpty(AmsNetId))
-                AmsNetId = Constants.LOCAL_AMS_NET_ID;
-            */
 
-            log.Info("Setting target NetId to '" + AmsNetId + "'");
-            automationInterface.ITcSysManager.SetTargetNetId(AmsNetId);
-            log.Info("Enabling boot project and setting BootProjectAutostart on " + automationInterface.ITcSysManager.GetTargetNetId());
 
             /* Build the solution and collect any eventual errors. Make sure to
              * filter out everything that is an error
              */
 
-
-            System.Threading.Thread.Sleep(100);
             vsInstance.CleanSolution();
-            log.Info("Cleaned");
             vsInstance.BuildSolution();
-            log.Info("Built");
             System.Threading.Thread.Sleep(100);
 
             ErrorItems errorsBuild = vsInstance.GetErrorItems();
@@ -339,6 +310,14 @@ namespace TcUnit.TcUnit_Runner
              * start/restart TwinCAT */
             if (tcBuildError.Equals(0))
             {
+                /* Check whether the user has provided an AMS NetId. If so, use it. Otherwise use
+                 * the local AMS NetId */
+                if (String.IsNullOrEmpty(AmsNetId))
+                    AmsNetId = Constants.LOCAL_AMS_NET_ID;
+
+                log.Info("Setting target NetId to '" + AmsNetId + "'");
+                automationInterface.ITcSysManager.SetTargetNetId(AmsNetId);
+                log.Info("Enabling boot project and setting BootProjectAutostart on " + automationInterface.ITcSysManager.GetTargetNetId());
 
                 for (int i = 1; i <= automationInterface.PlcTreeItem.ChildCount; i++)
                 {
@@ -364,9 +343,7 @@ namespace TcUnit.TcUnit_Runner
 
                 /* Clean the solution. This is the only way to clean the error list which needs to be
                  * clean prior to starting the TwinCAT runtime */
-                log.Info("Cleaning...");
                 vsInstance.CleanSolution();
-                log.Info("Cleaned again");
 
                 // Wait
                 System.Threading.Thread.Sleep(10000);
@@ -497,85 +474,6 @@ namespace TcUnit.TcUnit_Runner
             Console.WriteLine();
             Console.WriteLine("Options:");
             p.WriteOptionDescriptions(Console.Out);
-        }
-
-
-        static string ParseXMLRoute(string XMLstaticFilepath, string XMLtargetPath, ITcSysManager10 manager)
-        {
-
-            /* =====================================================
-             * The following sample code creates an ADS route to a remote
-             * ADS device. The following XML structure will be consumed
-             * on the System Manager node SYSTEM\Route Settings:
-             * The exact XML schema is not known, maybe ask beckhoff support?
-             * source : 
-             * 
-             * 
-             * <TreeItem>
-	            <ItemName>Route Settings</ItemName>
-	            <PathName>TIRR</PathName>
-	            <RoutePrj>
-		            <TargetList>
-			            <BroadcastSearch>false</BroadcastSearch>
-		            </TargetList>
-		            <AddProjectRoute>
-			            <RemoteName>XAR-PC</RemoteName>
-			            <RemoteNetId>10.0.0.0.1.1</RemoteNetId>
-			            <RemoteIpAddr>10.0.10.1</RemoteIpAddr>
-			            <Type>TCP_IP</Type>
-			            <Flags>32</Flags>
-			            <Tls>
-				            <Psk>
-					            <Identity>ID</Identity>
-					            <Pwd>password</Pwd>
-				            </Psk>
-			            </Tls>
-                        <LocalName>LocalName</LocalName>
-		            </AddProjectRoute>
-	            </RoutePrj>
-               </TreeItem>
-             * 
-             * This will create a new ADS route to the remote target
-             * with NetID 10.0.0.0.1.1 and IP 10.0.10.1. By
-             * specifying the identity / pwd combination of the remote
-             * target, the corresponding return route will be created
-             * on the remote device.
-             * ===================================================== */
-            /* ==============================================
-            * Lookup System Manager node "SYSTEM^Route Settings" using Shortcut "TIRR"
-            * ============================================== */
-            
-            XmlDocument xml = new XmlDocument();
-            xml.PreserveWhitespace = true;
-            xml.Load(XMLstaticFilepath);
-            string xmlString = File.ReadAllText(XMLstaticFilepath);
-
-            //obtain AMSNetID from supplied route
-            AmsNetId targetAmsNetID = new AmsNetId(Regex.Match(xmlString, "(?<=NetId>)([0-9.]*)(?=</)").ToString());
-            
-            AdsClient smallAdsClient = new AdsClient();
-            smallAdsClient.Connect(Regex.Match(File.ReadAllText(XMLtargetPath), "(?<=NetId>)([0-9.]*)(?=</)").ToString(), 10000);
-            smallAdsClient.TryWriteControl(new StateInfo(AdsState.Reconfig, 2));
-            //make sure system is done with reconfig when continuing program
-            System.Threading.Thread.Sleep(5000);
-            smallAdsClient.Disconnect();
-
-            string targetIP = Regex.Match(xmlString, "(?<=Address>)([0-9.]*)(?=</)").ToString();
-            string routeName = Regex.Match(xmlString, "(?<=Name>)(.*)(?=</)").ToString();
-            Route Testroute = new Route(routeName, targetAmsNetID, targetIP);
-
-            ITcSmTreeItem routesNode = manager.LookupTreeItem("TIRR");
-            routesNode.ConsumeXml(File.ReadAllText(XMLtargetPath));
-
-            //string Xmlschema = routesNode.ProduceXml();
-            //Console.WriteLine(Xmlschema);
-
-            //manager.SaveConfiguration();
-
-            /* ==============================================
-            /* Save configuration
-            /* ============================================== */
-            return targetAmsNetID.ToString();
         }
 
         /// <summary>
