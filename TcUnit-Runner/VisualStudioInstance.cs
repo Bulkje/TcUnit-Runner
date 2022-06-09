@@ -118,7 +118,7 @@ namespace TcUnit.TcUnit_Runner
             /* Make sure the DTE loads with the same version of Visual Studio as the
              * TwinCAT project was created in
              */
-            
+
             // Load the DTE
             string VisualStudioProgId = VisualStudioDteAvailable(visualStudioVersion);
             bool isVersionAvailable = false;
@@ -138,7 +138,7 @@ namespace TcUnit.TcUnit_Runner
 
             var allTwinCatVersions = new List<Version>();
             Version latestTwinCatVersion = null;
-   
+
             // Check if version is installed
             foreach (var possibleVersion in remoteManager.Versions)
             {
@@ -166,7 +166,9 @@ namespace TcUnit.TcUnit_Runner
                 if (isVersionAvailable)
                 {
                     log.Info("The pinned TwinCAT version is available");
-                } else {
+                }
+                else
+                {
                     log.Error("The pinned TwinCAT version is not available");
                     throw new Exception("The pinned TwinCAT version is not available");
                 }
@@ -198,14 +200,13 @@ namespace TcUnit.TcUnit_Runner
             }
             else
             {
-               log.Error("It´s not possible to run TwinCAT in this configuration (TwinCAT-ForcedVersion / pinned TwinCAT Version / installed TwinCAT Version ");
-               throw new Exception("Wrong configuration for this TwinCAT version");
+                log.Error("It´s not possible to run TwinCAT in this configuration (TwinCAT-ForcedVersion / pinned TwinCAT Version / installed TwinCAT Version ");
+                throw new Exception("Wrong configuration for this TwinCAT version");
             }
 
             // Log the Version which will be loaded
             log.Info("Using the TwinCAT remote manager to load TwinCAT version '" + remoteManager.Version + "'...");
         }
-
 
         /// <summary>
         /// Returns any version of Visual Studio that is available on the machine, first trying with the provided version as parameter.

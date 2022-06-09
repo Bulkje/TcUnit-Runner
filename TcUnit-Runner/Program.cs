@@ -50,6 +50,8 @@ namespace TcUnit.TcUnit_Runner
         private static string AmsNetId = null;
         private static List<int> AmsPorts = new List<int>();
         private static string Timeout = null;
+        private static string PLCProjectName = null;
+        private static string LibrarySavePath = null;
         private static VisualStudioInstance vsInstance;
         private static ILog log = LogManager.GetLogger("TcUnit-Runner");
 
@@ -70,6 +72,8 @@ namespace TcUnit.TcUnit_Runner
             OptionSet options = new OptionSet()
                 .Add("v=|VisualStudioSolutionFilePath=", "The full path to the TwinCAT project (sln-file)", v => VisualStudioSolutionFilePath = v)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
+                .Add("n=|PLCProjectName=", "The full name of the PLC project, eg 'NameOfProject^NameOfProject Project'", n => PLCProjectName = n)
+                .Add("l=|LibraryPath=", "The full path of the library file including name and file extention (.library or .compiled-library)", l => LibrarySavePath = l)
                 .Add("d|debug", "[OPTIONAL] Increase debug message verbosity", d => enableDebugLoggingLevel = d != null)
                 .Add("?|h|help", h => showHelp = h != null);
             try
@@ -185,7 +189,7 @@ namespace TcUnit.TcUnit_Runner
             }
 
 
-            AutomationInterface automationInterface = new AutomationInterface(vsInstance.GetProject());
+            AutomationInterface automationInterface = new AutomationInterface(vsInstance.GetProject(), PLCProjectName);
             if (automationInterface.PlcTreeItem.ChildCount <= 0)
             {
                 log.Error("No PLC-project exists in TwinCAT project");
@@ -226,14 +230,27 @@ namespace TcUnit.TcUnit_Runner
             if (tcBuildError.Equals(0))
             {
                 log.Info("No Build errors!");
+                log.Info("Checking objects of Project:" + PLCProjectName);
+                if (automationInterface.Plcproj.CheckAllObjects())
+                {
+                    log.Info("No Errors while checking all objects!");
+                    log.Info("Trying to save as library...");
+
+                    automationInterface.Plcproj.SaveAsLibrary(LibrarySavePath, false);
+                    log.Info("Saved as library at " + LibrarySavePath);
+                }
+                else
+                {
+                    log.Info("Error(s) while checking all objects!");
+                    CleanUpAndExitApplication(Constants.RETURN_CHECKALLOBJECTS_ERROR);
+                }
+                CleanUpAndExitApplication(Constants.RETURN_SUCCESSFULL);
             }
             else
             {
                 log.Error("Build errors in project");
                 CleanUpAndExitApplication(Constants.RETURN_BUILD_ERROR);
             }
-
-            
         }
 
         static void DisplayHelp(OptionSet p)
