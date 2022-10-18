@@ -50,6 +50,7 @@ namespace TcUnit.TcUnit_Runner
         private static string AmsNetId = null;
         private static List<int> AmsPorts = new List<int>();
         private static string Timeout = null;
+        private static string PLCProjectName = null;
         private static VisualStudioInstance vsInstance;
         private static ILog log = LogManager.GetLogger("TcUnit-Runner");
 
@@ -72,6 +73,7 @@ namespace TcUnit.TcUnit_Runner
                 .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
                 .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
+                .Add("n=|PLCProjectName=", "The full name of the PLC project, eg 'NameOfProject^NameOfProject Project'", n => PLCProjectName = n)
                 .Add("u=|Timeout=", "[OPTIONAL] Timeout the process with an error after X minutes", u => Timeout = u)
                 .Add("d|debug", "[OPTIONAL] Increase debug message verbosity", d => enableDebugLoggingLevel = d != null)
                 .Add("?|h|help", h => showHelp = h != null);
@@ -184,6 +186,7 @@ namespace TcUnit.TcUnit_Runner
 
             try
             {
+                log.Info("Loading solution...");
                 vsInstance.LoadSolution();
             }
             catch
@@ -199,7 +202,7 @@ namespace TcUnit.TcUnit_Runner
             }
 
 
-            AutomationInterface automationInterface = new AutomationInterface(vsInstance.GetProject());
+            AutomationInterface automationInterface = new AutomationInterface(vsInstance.GetProject(), PLCProjectName);
             if (automationInterface.PlcTreeItem.ChildCount <= 0)
             {
                 log.Error("No PLC-project exists in TwinCAT project");
@@ -310,6 +313,17 @@ namespace TcUnit.TcUnit_Runner
              * start/restart TwinCAT */
             if (tcBuildError.Equals(0))
             {
+                log.Info("Checking objects of Project:" + PLCProjectName);
+                if (automationInterface.Plcproj.CheckAllObjects())
+                {
+                    log.Info("No Errors while checking all objects!");
+                }
+                else
+                {
+                    log.Info("Error(s) while checking all objects!");
+                    CleanUpAndExitApplication(Constants.RETURN_CHECKALLOBJECTS_ERROR);
+                }
+
                 /* Check whether the user has provided an AMS NetId. If so, use it. Otherwise use
                  * the local AMS NetId */
                 if (String.IsNullOrEmpty(AmsNetId))
@@ -321,6 +335,7 @@ namespace TcUnit.TcUnit_Runner
 
                 for (int i = 1; i <= automationInterface.PlcTreeItem.ChildCount; i++)
                 {
+                    log.Info(automationInterface.PlcTreeItem.ChildCount.ToString());
                     ITcSmTreeItem plcProject = automationInterface.PlcTreeItem.Child[i];
                     ITcPlcProject iecProject = (ITcPlcProject)plcProject;
                     iecProject.BootProjectAutostart = true;
@@ -335,8 +350,7 @@ namespace TcUnit.TcUnit_Runner
                 log.Info("ActivateConfiguration");
                 //log.Info(automationInterface.ActivateConfiguration());
                 automationInterface.ActivateConfiguration();
-                //automationInterface.ITcSysManager.ActivateConfiguration();
-                log.Info("Done activating");
+                
 
                 // Wait
                 System.Threading.Thread.Sleep(10000);

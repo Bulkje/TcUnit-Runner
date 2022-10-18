@@ -14,16 +14,20 @@ namespace TcUnit.TcUnit_Runner
     /// </summary>
     class AutomationInterface
     {
+        private ITcSysManager Sysmanager = null;
         private ITcSysManager10 sysManager = null;
         private ITcConfigManager configManager = null;
         private ITcSmTreeItem plcTreeItem = null;
         private ITcSmTreeItem routesTreeItem = null;
         private ITcSmTreeItem realTimeTasksTreeItem = null;
+        private ITcPlcIECProject2 plcproj = null;
         //private ITcSmTreeItem testTreeItem = null;
 
-        public AutomationInterface(EnvDTE.Project project)
+        public AutomationInterface(EnvDTE.Project project, string PlcProjectName)
         {
+            Sysmanager = (ITcSysManager)project.Object;
             sysManager = (ITcSysManager10)project.Object;
+            plcproj = (ITcPlcIECProject2)Sysmanager.LookupTreeItem(Constants.PLC_CONFIGURATION_SHORTCUT + '^' + PlcProjectName);
             configManager = (ITcConfigManager)sysManager.ConfigurationManager;
             plcTreeItem = sysManager.LookupTreeItem(Constants.PLC_CONFIGURATION_SHORTCUT);
             routesTreeItem = sysManager.LookupTreeItem(Constants.RT_CONFIG_ROUTE_SETTINGS_SHORTCUT);
@@ -32,8 +36,8 @@ namespace TcUnit.TcUnit_Runner
 
 
 
-        public AutomationInterface(VisualStudioInstance vsInst) : this(vsInst.GetProject())
-        { }
+        //public AutomationInterface(VisualStudioInstance vsInst) : this(vsInst.GetProject())
+        //{ }
 
         public ITcSysManager10 ITcSysManager
         {
@@ -48,6 +52,14 @@ namespace TcUnit.TcUnit_Runner
             get
             {
                 return this.plcTreeItem;
+            }
+        }
+
+        public ITcPlcIECProject2 Plcproj
+        {
+            get
+            {
+                return this.plcproj;
             }
         }
 
