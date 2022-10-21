@@ -335,7 +335,6 @@ namespace TcUnit.TcUnit_Runner
 
                 for (int i = 1; i <= automationInterface.PlcTreeItem.ChildCount; i++)
                 {
-                    log.Info(automationInterface.PlcTreeItem.ChildCount.ToString());
                     ITcSmTreeItem plcProject = automationInterface.PlcTreeItem.Child[i];
                     ITcPlcProject iecProject = (ITcPlcProject)plcProject;
                     iecProject.BootProjectAutostart = true;
