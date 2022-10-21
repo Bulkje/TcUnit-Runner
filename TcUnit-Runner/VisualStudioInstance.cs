@@ -125,7 +125,7 @@ namespace TcUnit.TcUnit_Runner
             bool isForceVersionAvailable = false;
             
             dte.UserControl = false; // have devenv.exe automatically close when launched using automation
-            //dte.SuppressUI = true; uncomment this line later
+            dte.SuppressUI = true;
             // Make sure all types of errors in the error list are collected
             dte.ToolWindows.ErrorList.ShowErrors = true;
             dte.ToolWindows.ErrorList.ShowMessages = true;
@@ -133,7 +133,6 @@ namespace TcUnit.TcUnit_Runner
             // First set the SilentMode and then try to open the Remote Manager
             var tcAutomationSettings = (TcAutomationSettings)dte.GetObject("TcAutomationSettings");
             tcAutomationSettings.SilentMode = true; // Only available from TC3.1.4020.0 and above
-            dte.MainWindow.Visible = true; // remove this line later
             // Load the correct version of TwinCAT using the remote manager in the automation interface
             ITcRemoteManager remoteManager = (ITcRemoteManager)dte.GetObject("TcRemoteManager");
 
