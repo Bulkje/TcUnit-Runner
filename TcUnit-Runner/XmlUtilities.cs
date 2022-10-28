@@ -102,5 +102,22 @@ namespace TcUnit.TcUnit_Runner
             xmlDoc.Load(path);
             return xmlDoc.OuterXml;
         }
+
+        public static string addCompilerDefine(string plcproj, string compilerdefine)
+        {
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(plcproj);
+            XmlNode target = xmlDoc.SelectSingleNode("/TreeItem/PlcProjectDef");
+
+            //Create new element for compilerdefine
+            XmlElement elem = xmlDoc.CreateElement("CompilerDefines");
+            elem.InnerText = compilerdefine;
+
+            //add the node to the document
+            //if node exists it is removed from its original position and added to its target position.
+            target.AppendChild(elem);
+
+            return xmlDoc.OuterXml;
+        }
     }
 }

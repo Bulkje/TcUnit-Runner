@@ -49,6 +49,7 @@ namespace TcUnit.TcUnit_Runner
         private static string ForceToThisTwinCATVersion = null;
         private static string RealTimeSettings = null;
         private static string AmsNetId = null;
+        private static string CompilerDefine = null;
         private static List<int> AmsPorts = new List<int>();
         private static string Timeout = null;
         private static string PLCProjectName = null;
@@ -73,6 +74,7 @@ namespace TcUnit.TcUnit_Runner
                 .Add("v=|VisualStudioSolutionFilePath=", "The full path to the TwinCAT project (sln-file)", v => VisualStudioSolutionFilePath = v)
                 .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
                 .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
+                .Add("c=|CompilerDefine=", "[OPTIONAL] The CompilerDefine that should be set in the PLC Project", c => CompilerDefine = c)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
                 .Add("r=|RTSettingsPath=", "[OPTIONAL] The path to the XML description of the Real-Time node", r => RealTimeSettings = r)
                 .Add("n=|PLCProjectName=", "The full name of the PLC project, eg 'NameOfProject^NameOfProject Project'", n => PLCProjectName = n)
@@ -353,6 +355,12 @@ namespace TcUnit.TcUnit_Runner
                      */
                     string xmlString = plcProject.ProduceXml();
                     AmsPorts.Add(XmlUtilities.AmsPort(xmlString));
+                    if (CompilerDefine != null)
+                    {
+                        string newPLCproj = XmlUtilities.addCompilerDefine(xmlString, CompilerDefine);
+                        plcProject.ConsumeXml(newPLCproj);
+                        log.Info("Added compilerdefine: " + CompilerDefine);
+                    }
                 }
                 System.Threading.Thread.Sleep(1000);
                 log.Info("ActivateConfiguration");
