@@ -47,6 +47,7 @@ namespace TcUnit.TcUnit_Runner
         private static string TwinCATProjectFilePath = null;
         private static string TcUnitTaskName = null;
         private static string ForceToThisTwinCATVersion = null;
+        private static string RealTimeSettings = null;
         private static string AmsNetId = null;
         private static List<int> AmsPorts = new List<int>();
         private static string Timeout = null;
@@ -73,6 +74,7 @@ namespace TcUnit.TcUnit_Runner
                 .Add("t=|TcUnitTaskName=", "[OPTIONAL] The name of the task running TcUnit defined under \"Tasks\"", t => TcUnitTaskName = t)
                 .Add("a=|AmsNetId=", "[OPTIONAL] The AMS NetId of the device of where the project and TcUnit should run", a => AmsNetId = a)
                 .Add("w=|TcVersion=", "[OPTIONAL] The TwinCAT version to be used to load the TwinCAT project", w => ForceToThisTwinCATVersion = w)
+                .Add("r=|RTSettingsPath=", "[OPTIONAL] The path to the XML description of the Real-Time node", r => RealTimeSettings = r)
                 .Add("n=|PLCProjectName=", "The full name of the PLC project, eg 'NameOfProject^NameOfProject Project'", n => PLCProjectName = n)
                 .Add("u=|Timeout=", "[OPTIONAL] Timeout the process with an error after X minutes", u => Timeout = u)
                 .Add("d|debug", "[OPTIONAL] Increase debug message verbosity", d => enableDebugLoggingLevel = d != null)
@@ -209,6 +211,13 @@ namespace TcUnit.TcUnit_Runner
                 CleanUpAndExitApplication(Constants.RETURN_NO_PLC_PROJECT_IN_TWINCAT_PROJECT);
             }
 
+
+            // Consume real time settings here to set the number of cores, routermemory, stack size etc.
+            if(RealTimeSettings != null)
+            {
+                log.Info("Consuming Real time settings at " + RealTimeSettings);
+                automationInterface.RealTimeTreeItem.ConsumeXml(XmlUtilities.XMLstring(RealTimeSettings));
+            }
 
             ITcSmTreeItem realTimeTasksTreeItem = automationInterface.RealTimeTasksTreeItem;
             /* Task name provided */

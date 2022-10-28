@@ -36,6 +36,7 @@ namespace TcUnit.TcUnit_Runner
         public const string RT_CONFIG_ROUTE_SETTINGS_SHORTCUT = "TIRR"; // Shortcut for "Real-Time Configuration^Route Settings"
         public const string PLC_CONFIGURATION_SHORTCUT = "TIPC"; // Shortcut for "PLC Configuration"
         public const string REAL_TIME_CONFIGURATION_ADDITIONAL_TASKS = "TIRT"; // Shortcut for "Real-Time Configuration^Additional Tasks" or " Real-Time Configuration" TAB "Additional Tasks"
+        public const string REAL_TIME_SETTINGS = "TIRS"; //Shortcut for "Real-time" node in System
         public const string LOCAL_AMS_NET_ID = "127.0.0.1.1.1";
     }
 }

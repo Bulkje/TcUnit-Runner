@@ -92,5 +92,15 @@ namespace TcUnit.TcUnit_Runner
             XmlNode nodeAdsPort = xmlDoc.SelectSingleNode("/TreeItem/PlcProjectDef/" + "AdsPort");
             return Convert.ToInt32(nodeAdsPort.InnerText);
         }
+        
+        /// <summary>
+        /// Returns the whole XML file as string
+        /// </summary>
+        public static string XMLstring(string path)
+        {
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.Load(path);
+            return xmlDoc.OuterXml;
+        }
     }
 }

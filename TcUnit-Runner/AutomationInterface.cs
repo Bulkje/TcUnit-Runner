@@ -20,6 +20,7 @@ namespace TcUnit.TcUnit_Runner
         private ITcSmTreeItem plcTreeItem = null;
         private ITcSmTreeItem routesTreeItem = null;
         private ITcSmTreeItem realTimeTasksTreeItem = null;
+        private ITcSmTreeItem realTimeSettings = null;
         private ITcPlcIECProject2 plcproj = null;
         //private ITcSmTreeItem testTreeItem = null;
 
@@ -32,6 +33,7 @@ namespace TcUnit.TcUnit_Runner
             plcTreeItem = sysManager.LookupTreeItem(Constants.PLC_CONFIGURATION_SHORTCUT);
             routesTreeItem = sysManager.LookupTreeItem(Constants.RT_CONFIG_ROUTE_SETTINGS_SHORTCUT);
             realTimeTasksTreeItem = sysManager.LookupTreeItem(Constants.REAL_TIME_CONFIGURATION_ADDITIONAL_TASKS);
+            realTimeSettings = sysManager.LookupTreeItem(Constants.REAL_TIME_SETTINGS);
         }
 
 
@@ -76,6 +78,14 @@ namespace TcUnit.TcUnit_Runner
             get
             {
                 return this.routesTreeItem;
+            }
+        }
+
+        public ITcSmTreeItem RealTimeTreeItem
+        {
+            get
+            {
+                return this.realTimeSettings;
             }
         }
 
