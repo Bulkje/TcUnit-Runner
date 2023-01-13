@@ -416,6 +416,7 @@ namespace TcUnit.TcUnit_Runner
                         {
                             log.Error("Invalid AdsState " + adsState + "<>" + AdsState.Run + ". This could indicate a PLC Exception, terminating ...");
                             Environment.Exit(Constants.RETURN_INVALID_ADSSTATE);
+                            CleanUpAndExitApplication(Constants.RETURN_INVALID_ADSSTATE);
                         }
                     }
                 }
